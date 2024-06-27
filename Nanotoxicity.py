@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+from PIL import Image
 
 # Function to load data from the Excel file
 @st.cache_data
@@ -134,30 +133,16 @@ def streamlit_app():
     st.markdown('<div class="title">Nano Toxicity Calculator</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Determine the toxicity of your nanoelectronic devices</div>', unsafe_allow_html=True)
     st.markdown('<div class="description">Use this tool to calculate the final toxicity score based on the nanoparticles and their concentrations. Ensure the total percentage adds up to 100%.</div>', unsafe_allow_html=True)
-
-    # Sidebar for dataset statistics
-    @st.cache_data
-    def plot_sidebar():
-        df_numeric = df.iloc[1:].set_index('Element').astype(float)
-        mean_toxicity = df_numeric.mean(axis=0)
-        
-        st.sidebar.subheader('Mean Toxicity Levels Across All Elements')
-        fig, ax = plt.subplots()
-        mean_toxicity.plot(kind='bar', ax=ax)
-        ax.set_xlabel('Concentration (%)')
-        ax.set_ylabel('Mean Toxicity Level')
-        ax.set_title('Mean Toxicity Levels Across All Elements')
-        ax.set_xticklabels(concentration_values, rotation=45)
-        ax.set_ylim(0, 1)
-        st.sidebar.pyplot(fig)
-
-        st.sidebar.subheader('Heatmap of Toxicity Levels')
-        fig, ax = plt.subplots(figsize=(10, 8))
-        sns.heatmap(df_numeric.T, cmap='coolwarm', annot=True, ax=ax)
-        ax.set_title('Heatmap of Toxicity Levels')
-        st.sidebar.pyplot(fig)
     
-    plot_sidebar()
+    st.sidebar.title('NanoToxicity Data Analysis')
+    # Sidebar for dataset statistics
+    st.sidebar.subheader('Mean Toxicity Levels Across All Elements')
+    mean_image = Image.open('mean.png')
+    st.sidebar.image(mean_image, caption='Mean Toxicity Levels Across All Elements')
+
+    st.sidebar.subheader('Heatmap of Toxicity Levels')
+    heat_image = Image.open('heat.png')
+    st.sidebar.image(heat_image, caption='Heatmap of Toxicity Levels')
 
     # Create a container for the number of elements input
     with st.container():
@@ -176,7 +161,6 @@ def streamlit_app():
     for i in range(num_elements):
         if i % 3 == 0:
             rows.append(st.columns([1, 1, 1, 0.1, 1]))  # Three columns per row
-
         row = rows[-1]
         col = i % 3
 
