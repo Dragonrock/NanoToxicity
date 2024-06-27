@@ -136,9 +136,9 @@ def streamlit_app():
     
     st.sidebar.title('NanoToxicity Data Analysis')
     # Sidebar for dataset statistics
-    st.sidebar.subheader('Mean Toxicity Levels Across All Elements')
+    st.sidebar.subheader('Mean Toxicity Levels Across All NanoParticles')
     mean_image = Image.open('mean.png')
-    st.sidebar.image(mean_image, caption='Mean Toxicity Levels Across All Elements')
+    st.sidebar.image(mean_image, caption='Mean Toxicity Levels Across All NanoParticles')
 
     st.sidebar.subheader('Heatmap of Toxicity Levels')
     heat_image = Image.open('heat.png')
@@ -146,7 +146,7 @@ def streamlit_app():
 
     # Create a container for the number of elements input
     with st.container():
-        num_elements = st.number_input("Number of Particles", min_value=1, max_value=10, step=1, value=1, key="num_elements")
+        num_elements = st.number_input("Number of NanoParticles", min_value=1, max_value=10, step=1, value=1, key="num_elements")
 
     # Initialize or resize session state percentages list
     if 'percentages' not in st.session_state or len(st.session_state.percentages) != num_elements:
