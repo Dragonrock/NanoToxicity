@@ -1,14 +1,25 @@
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Hardcoded toxicity data
-toxicity_data = {
-    'Element1': {0.49: 0.1, 0.98: 0.2, 1.95: 0.4, 3.91: 0.8, 7.81: 1.6, 15.63: 3.2, 31.25: 6.4, 62.5: 12.8, 125: 25.6, 250: 51.2},
-    'Element2': {0.49: 0.05, 0.98: 0.1, 1.95: 0.2, 3.91: 0.4, 7.81: 0.8, 15.63: 1.6, 31.25: 3.2, 62.5: 6.4, 125: 12.8, 250: 25.6},
-    'Element3': {0.49: 0.3, 0.98: 0.6, 1.95: 1.2, 3.91: 2.4, 7.81: 4.8, 15.63: 9.6, 31.25: 19.2, 62.5: 38.4, 125: 76.8, 250: 153.6}
-}
+# Function to load data from the Excel file
+@st.cache_data
+def load_toxicity_data(file_path):
+    df = pd.read_excel(file_path, sheet_name='Sheet1', skiprows=1)
+    df.rename(columns={df.columns[0]: 'Element'}, inplace=True)
+    toxicity_data = df.set_index('Element').T.to_dict()
+    data_df = df
+    return toxicity_data, data_df
+
+# Path to the Excel file
+file_path = 'final.xlsx'  # Update this to the correct path if necessary
+
+# Load toxicity data
+toxicity_data, df = load_toxicity_data(file_path)
 
 # Predefined concentration values
-concentration_values = [0.49, 0.98, 1.95, 3.91, 7.81, 15.63, 31.25, 62.5, 125, 250]
+concentration_values = df.columns[1:].astype(float).tolist()
 
 # Custom CSS for styling
 st.markdown("""
@@ -41,11 +52,9 @@ st.markdown("""
         }
         .container {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
         }
         .input-block {
-            flex: 3;
+            flex: 2;
             padding: 20px;
             background-color: #f0f2f6;
             border-radius: 10px;
@@ -84,6 +93,9 @@ st.markdown("""
             bottom: 0;
             transition: width 0.5s ease-in-out;
         }
+        .css-1d391kg.e1fqkh3o3 {
+            width: 300px;  /* Adjust the width as needed */
+        }
         .feedback {
             font-size: 1.2em;
             color: blue;
@@ -103,6 +115,12 @@ st.markdown("""
         .bar-red {
             background-color: #ff0000;
         }
+        .stNumberInput > div > div > input {
+            font-size: 1.5em;
+        }
+        .stButton > button {
+            font-size: 1.5em;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -116,6 +134,30 @@ def streamlit_app():
     st.markdown('<div class="title">Nano Toxicity Calculator</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Determine the toxicity of your nanoelectronic devices</div>', unsafe_allow_html=True)
     st.markdown('<div class="description">Use this tool to calculate the final toxicity score based on the nanoparticles and their concentrations. Ensure the total percentage adds up to 100%.</div>', unsafe_allow_html=True)
+
+    # Sidebar for dataset statistics
+    @st.cache_data
+    def plot_sidebar():
+        df_numeric = df.iloc[1:].set_index('Element').astype(float)
+        mean_toxicity = df_numeric.mean(axis=0)
+        
+        st.sidebar.subheader('Mean Toxicity Levels Across All Elements')
+        fig, ax = plt.subplots()
+        mean_toxicity.plot(kind='bar', ax=ax)
+        ax.set_xlabel('Concentration (%)')
+        ax.set_ylabel('Mean Toxicity Level')
+        ax.set_title('Mean Toxicity Levels Across All Elements')
+        ax.set_xticklabels(concentration_values, rotation=45)
+        ax.set_ylim(0, 1)
+        st.sidebar.pyplot(fig)
+
+        st.sidebar.subheader('Heatmap of Toxicity Levels')
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(df_numeric.T, cmap='coolwarm', annot=True, ax=ax)
+        ax.set_title('Heatmap of Toxicity Levels')
+        st.sidebar.pyplot(fig)
+    
+    plot_sidebar()
 
     # Create a container for the number of elements input
     with st.container():
@@ -132,11 +174,9 @@ def streamlit_app():
 
     rows = []
     for i in range(num_elements):
-        # Create a new row for every three elements
         if i % 3 == 0:
-            rows.append(st.columns([1, 1, 1, 0.1, 1]))  # Added extra column for spacing and bar
+            rows.append(st.columns([1, 1, 1, 0.1, 1]))  # Three columns per row
 
-        # Get the current row and column
         row = rows[-1]
         col = i % 3
 
@@ -144,7 +184,7 @@ def streamlit_app():
             st.markdown(f"<h3>Particle {i+1}</h3>", unsafe_allow_html=True)
             element = st.selectbox(f"Select Nanoparticle {i+1}", list(toxicity_data.keys()), key=f"element_{i}")
             concentration = st.selectbox(f"Select Concentration for {element} (%)", concentration_values, key=f"concentration_{i}")
-            percentage = st.number_input(f"Enter Percentage Used for {element} (%)", min_value=0.0, max_value=100.0, step=0.1, value=st.session_state.percentages[i], key=f"percentage_{i}")
+            percentage = st.number_input(f"Enter Percentage Used for {element} (%)", min_value=0.0, max_value=100.0, step=5.0, value=st.session_state.percentages[i], key=f"percentage_{i}")
             elements.append(element)
             concentrations.append(concentration)
             percentages.append(percentage)
@@ -165,10 +205,7 @@ def streamlit_app():
             else:
                 st.error(f"No data available for {concentration}% concentration of {element}")
 
-        # Normalize the final toxicity score to not exceed 10
         normalized_toxicity = min(final_toxicity, 10)
-
-        # Ensure the bar is aligned with the input elements
         with rows[0][4]:
             st.markdown('<div class="result">', unsafe_allow_html=True)
             st.markdown(f"<div style='text-align: center; font-size: 1.5em;'>Final Toxicity Score: {final_toxicity:.2f}</div>", unsafe_allow_html=True)
